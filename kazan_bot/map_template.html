@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Казань рядом — карта впечатлений</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}body{margin:0;font:16px/1.6 system-ui,sans-serif;background:#f5f3ee;color:#143c38}header{background:#12483e;color:white;padding:24px 30px}h1{margin:0;font-size:32px}header p{margin:6px 0 0;color:#d8e8da}.wrap{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - 146px);min-height:560px}aside{padding:22px;overflow:auto}select{width:100%;padding:12px;border-radius:12px;border:1px solid #bed0c6;background:white;font:inherit;color:#143c38}#map{min-height:500px}.stop{background:white;padding:13px 16px;margin:10px 0;border-radius:14px;border-left:4px solid #d9a74b;cursor:pointer}.stop:hover{background:#eaf3ee}.small{font-size:13px;color:#526862}a{color:#126b58}.pin{background:#144f43;color:white;border:2px solid #f7dda0;border-radius:50%;display:flex;align-items:center;justify-content:center;font:bold 14px system-ui;box-shadow:0 2px 7px #0004}.leaflet-popup-content{font:14px/1.6 system-ui;max-height:300px;overflow:auto}.leaflet-popup-content b{font-size:17px}button{border:0;border-radius:10px;background:#144f43;color:white;padding:10px 16px;cursor:pointer;font:inherit;width:100%}#fallback{display:none;padding:30px}.credit{font-size:12px;color:#526862}@media(max-width:760px){header{padding:20px}h1{font-size:26px}.wrap{height:auto;display:flex;flex-direction:column-reverse}#map{height:55vh;min-height:350px}aside{max-height:none}}
+</style></head><body>
+<header><h1>🌙 Казань рядом</h1><p>Две культуры · прогулки у воды · татарские вкусы</p></header>
+<div class="wrap"><aside><label for="route"><b>Выберите свой день</b></label><select id="route"><option value="all">📍 Все места путеводителя</option></select>
+<p id="intro" class="small"></p><button id="fit">Показать все точки</button><div id="stops"></div>
+<p class="small">Линия соединяет остановки в порядке посещения и не является пешеходной трассой. Для переходов используйте навигатор. Координаты приблизительные; у сети «Тюбетей» отмечен район центра.</p>
+<p class="credit">Карта © OpenStreetMap contributors · Leaflet 1.9.4. Для подложки и библиотеки нужен интернет. Материалы: go.kzn.ru, kazan-kremlin.ru, visit-tatarstan.com и сайты заведений.</p></aside>
+<div id="map"><div id="fallback">Карта не загрузилась. Проверьте подключение к интернету. Список остановок и ссылки доступны слева.</div></div></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const places=__PLACES__, routes=__ROUTES__;
+const safe=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let map=null,group=null;
+if(window.L){map=L.map('map').setView([55.791,49.119],14);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);group=L.featureGroup().addTo(map)}
+else document.getElementById('fallback').style.display='block';
+for(const [key,r] of Object.entries(routes)){const option=document.createElement('option');option.value=key;option.textContent=r.name;document.getElementById('route').append(option)}
+function render(key){
+ const route=routes[key],stops=route?route.stops:Object.keys(places).map(k=>['',k]);
+ document.getElementById('intro').textContent=route?route.duration+' · '+route.intro:'18 мест: история, природа, культура и гастрономические остановки.';
+ document.getElementById('stops').innerHTML='';if(group)group.clearLayers();const line=[];
+ stops.forEach(([hour,key],index)=>{const p=places[key];line.push([p.lat,p.lon]);let marker=null;
+ const popup='<b>'+safe(p.emoji+' '+p.name)+'</b><p>'+safe(p.description)+'</p><p>'+safe(p.tip)+'</p><a target="_blank" rel="noopener" href="'+safe(p.map_url)+'">Открыть карту и фотографии</a> · <a target="_blank" rel="noopener" href="'+safe(p.source)+'">Источник</a>';
+ if(map){marker=L.marker([p.lat,p.lon],{icon:L.divIcon({className:'pin',html:String(index+1),iconSize:[30,30]})}).addTo(group).bindPopup(popup)}
+ const row=document.createElement('div');row.className='stop';row.innerHTML='<b>'+safe((index+1)+'. '+p.emoji+' '+p.name)+'</b><div class="small">'+safe(hour||p.tip)+'</div>';
+ row.tabIndex=0;row.setAttribute('role','button');const open=()=>{if(marker){map.setView([p.lat,p.lon],16);marker.openPopup()}else window.open(p.map_url,'_blank','noopener')};row.onclick=open;row.onkeydown=e=>{if(e.key==='Enter')open()};document.getElementById('stops').append(row);
+ });if(map){if(route)L.polyline(line,{color:'#bd842d',weight:3,dashArray:'7 8'}).addTo(group);map.fitBounds(group.getBounds(),{padding:[35,35]})}
+}
+document.getElementById('route').onchange=e=>render(e.target.value);
+document.getElementById('fit').onclick=()=>{if(map)map.fitBounds(group.getBounds(),{padding:[35,35]})};render('all');
+</script></body></html>
